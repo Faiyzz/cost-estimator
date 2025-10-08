@@ -1,103 +1,115 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { useState } from "react";
+
+export default function EstimatePage() {
+  const [pending, setPending] = useState(false);
+  const [ok, setOk] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <main className="min-h-screen bg-white text-gray-900">
+      <section className="mx-auto max-w-2xl px-6 py-12">
+        <h1 className="text-3xl font-semibold">Get a Cost Estimate</h1>
+        <p className="mt-2 text-sm text-gray-600">
+          Answer a few questions and upload a site map or photo.
+        </p>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+        <form
+          className="mt-8 space-y-5"
+          onSubmit={async (e) => {
+            e.preventDefault();
+            setPending(true); setErr(null); setOk(null);
+            const fd = new FormData(e.currentTarget as HTMLFormElement);
+            const res = await fetch("/api/visitor/submit", { method: "POST", body: fd });
+            const j = await res.json();
+            setPending(false);
+            res.ok ? setOk("Submitted! We’ll email you shortly.") : setErr(j?.error || "Failed.");
+            if (res.ok) (e.currentTarget as HTMLFormElement).reset();
+          }}
         >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+          <div className="grid gap-4">
+            <label className="block">
+              <span className="text-sm font-medium">Full Name</span>
+              <input name="fullName" required className="mt-1 w-full rounded border px-3 py-2" />
+            </label>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <label className="block">
+                <span className="text-sm font-medium">Email</span>
+                <input type="email" name="email" required className="mt-1 w-full rounded border px-3 py-2" />
+              </label>
+              <label className="block">
+                <span className="text-sm font-medium">Phone</span>
+                <input name="phone" className="mt-1 w-full rounded border px-3 py-2" />
+              </label>
+            </div>
+
+            <label className="block">
+              <span className="text-sm font-medium">Property Type</span>
+              <select name="propertyType" className="mt-1 w-full rounded border px-3 py-2" required>
+                <option value="">Select...</option>
+                <option>Residential</option>
+                <option>Commercial</option>
+                <option>Industrial</option>
+              </select>
+            </label>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <label className="block">
+                <span className="text-sm font-medium">Location/City</span>
+                <input name="location" className="mt-1 w-full rounded border px-3 py-2" required />
+              </label>
+              <label className="block">
+                <span className="text-sm font-medium">Plot Size (e.g. 1 Kanal)</span>
+                <input name="plotSize" className="mt-1 w-full rounded border px-3 py-2" />
+              </label>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <label className="block">
+                <span className="text-sm font-medium">Covered Area (sqft)</span>
+                <input name="coveredArea" className="mt-1 w-full rounded border px-3 py-2" />
+              </label>
+              <label className="block">
+                <span className="text-sm font-medium">Floors</span>
+                <input type="number" name="floors" min={0} className="mt-1 w-full rounded border px-3 py-2" />
+              </label>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <label className="block">
+                <span className="text-sm font-medium">Timeline</span>
+                <input name="timeline" className="mt-1 w-full rounded border px-3 py-2" />
+              </label>
+              <label className="block">
+                <span className="text-sm font-medium">Budget Range</span>
+                <input name="budgetRange" className="mt-1 w-full rounded border px-3 py-2" />
+              </label>
+            </div>
+
+            <label className="block">
+              <span className="text-sm font-medium">Additional Notes</span>
+              <textarea name="extraNotes" rows={4} className="mt-1 w-full rounded border px-3 py-2" />
+            </label>
+
+            <label className="block">
+              <span className="text-sm font-medium">Upload Map / Image</span>
+              <input type="file" name="file" accept="image/*,.pdf" className="mt-1 w-full" />
+            </label>
+
+            <button
+              disabled={pending}
+              className="inline-flex items-center rounded bg-yellow-400 px-4 py-2 font-medium text-gray-900 hover:bg-yellow-300 disabled:opacity-50"
+            >
+              {pending ? "Submitting..." : "Submit"}
+            </button>
+
+            {ok && <p className="text-green-600">{ok}</p>}
+            {err && <p className="text-red-600">{err}</p>}
+          </div>
+        </form>
+      </section>
+    </main>
   );
 }

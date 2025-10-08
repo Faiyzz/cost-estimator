@@ -1,0 +1,117 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL") // optional, safe to keep
+}
+
+/// --- Auth.js (NextAuth) base models ---
+model User {
+  id            String   @id @default(cuid())
+  name          String?
+  email         String?  @unique
+  emailVerified DateTime?
+  image         String?
+
+  // Role for admin portal
+  role          Role     @default(VISITOR)
+
+  accounts      Account[]
+  sessions      Session[]
+
+  // Convenience relation
+  estimates     Estimate[]
+}
+
+enum Role {
+  ADMIN
+  VISITOR
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+/// --- App data models ---
+model VisitorSubmission {
+  id            String   @id @default(cuid())
+  createdAt     DateTime @default(now())
+
+  // Contact
+  fullName      String
+  email         String
+  phone         String?
+
+  // Property questionnaire (store structured fields + catch-all JSON)
+  propertyType  String
+  location      String
+  plotSize      String?
+  coveredArea   String?
+  floors        Int?
+  timeline      String?
+  budgetRange   String?
+  extraNotes    String?
+  answersJson   Json?     // for any additional dynamic questions
+
+  // File upload
+  fileUrl       String?
+  fileName      String?
+
+  status        SubmissionStatus @default(NEW)
+  estimate      Estimate?
+}
+
+enum SubmissionStatus {
+  NEW
+  ESTIMATING
+  ESTIMATED
+}
+
+model Estimate {
+  id              String   @id @default(cuid())
+  submissionId    String   @unique
+  amountPKR       Int
+  breakdown       String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // who created the estimate (admin)
+  createdByUserId String
+  createdBy       User     @relation(fields: [createdByUserId], references: [id])
+
+  submission      VisitorSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+}
