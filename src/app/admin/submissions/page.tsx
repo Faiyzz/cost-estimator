@@ -1,7 +1,11 @@
 import { prisma } from "@/lib/prisma";
+// add this import
+import type { Prisma } from "@prisma/client";
+
 import Link from "next/link";
 import SubmissionsFilters from "@/components/admin/SubmissionsFilters";
-
+type VSWhere =
+  NonNullable<Parameters<typeof prisma.visitorSubmission.findMany>[0]>["where"];
 export const dynamic = "force-dynamic";
 
 function fmtDate(d: Date) {
@@ -19,7 +23,7 @@ export default async function SubmissionsPage({
   const take = 20;
   const skip = (page - 1) * take;
 
-  const where: any = {};
+  const where: VSWhere = {};
 
   if (q) {
     where.OR = [

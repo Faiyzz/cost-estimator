@@ -87,10 +87,12 @@ model VisitorSubmission {
   extraNotes    String?
   answersJson   Json?     // for any additional dynamic questions
 
-  // File upload
+   // Legacy single file (optional; keep for compatibility)
   fileUrl       String?
   fileName      String?
 
+  // NEW: multiple files
+  filesJson     Json?    // [{ name, url, size, type }]
   status        SubmissionStatus @default(NEW)
   estimate      Estimate?
 }

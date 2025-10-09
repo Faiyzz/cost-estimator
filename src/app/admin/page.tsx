@@ -3,7 +3,6 @@ import Link from "next/link";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { redirect } from "next/navigation";
-
 function fmtDate(d: Date) {
   return new Intl.DateTimeFormat("en-PK", {
     dateStyle: "medium",
@@ -14,9 +13,9 @@ function fmtDate(d: Date) {
 export const dynamic = "force-dynamic";
 
 export default async function AdminHome() {
-const session = await getServerSession(authOptions);
-if (!session) redirect("/login");
-if ((session.user as any)?.role !== "ADMIN") redirect("/");
+  const session = await getServerSession(authOptions);
+  if (!session) redirect("/login");
+  if ((session.user as any)?.role !== "ADMIN") redirect("/");
   const [total, responded, recent] = await Promise.all([
     prisma.visitorSubmission.count(),
     prisma.visitorSubmission.count({ where: { estimate: { isNot: null } } }),
