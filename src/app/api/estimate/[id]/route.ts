@@ -10,19 +10,22 @@ export const dynamic = "force-dynamic";
 type ParamsPromise = Promise<{ id: string }>;
 
 export async function POST(req: NextRequest, ctx: { params: ParamsPromise }) {
-  // Auth
+  // Auth (requires NextAuth module augmentation so user.id/role exist)
   const session = await getServerSession(authOptions);
-  if (!session || (session.user as any)?.role !== "ADMIN") {
+  if (!session || session.user.role !== "ADMIN") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // 👇 FIX: await params
+  // Await params
   const { id } = await ctx.params;
 
   // Parse form-data
   const form = await req.formData();
-  const amountPKR = Number(form.get("amountPKR") ?? 0);
-  const breakdown = String(form.get("breakdown") ?? "");
+  const amountPKRRaw = form.get("amountPKR");
+  const breakdownRaw = form.get("breakdown");
+
+  const amountPKR = amountPKRRaw ? Number(amountPKRRaw) : 0;
+  const breakdown = typeof breakdownRaw === "string" ? breakdownRaw : "";
 
   if (!Number.isFinite(amountPKR) || amountPKR < 0) {
     return NextResponse.json({ error: "Invalid amount" }, { status: 400 });
@@ -45,13 +48,13 @@ export async function POST(req: NextRequest, ctx: { params: ParamsPromise }) {
       update: {
         amountPKR,
         breakdown,
-        createdByUserId: (session.user as any).id || "admin",
+        createdByUserId: session.user.id || "admin",
       },
       create: {
         submissionId: s.id,
         amountPKR,
         breakdown,
-        createdByUserId: (session.user as any).id || "admin",
+        createdByUserId: session.user.id || "admin",
       },
     });
 
@@ -61,11 +64,14 @@ export async function POST(req: NextRequest, ctx: { params: ParamsPromise }) {
     });
   });
 
-  // Notify n8n (2nd workflow) — optional
+  // Notify n8n (optional)
   const webhookUrl = process.env.N8N_ESTIMATE_READY_WEBHOOK_URL;
   if (webhookUrl) {
     const timeoutMs = 2500;
-    const timeout = new Promise((resolve) => setTimeout(resolve, timeoutMs, "timeout"));
+    const timeout = new Promise((resolve) =>
+      setTimeout(resolve, timeoutMs, "timeout")
+    );
+
     const payload = {
       submissionId: s.id,
       fullName: s.fullName,
@@ -83,7 +89,7 @@ export async function POST(req: NextRequest, ctx: { params: ParamsPromise }) {
         fileUrl: s.fileUrl,
         fileName: s.fileName,
       },
-      estimatedByUserId: (session.user as any).id || "admin",
+      estimatedByUserId: session.user.id || "admin",
       estimatedAt: new Date().toISOString(),
       isFirstEstimate: !hadEstimate,
     };
@@ -98,17 +104,19 @@ export async function POST(req: NextRequest, ctx: { params: ParamsPromise }) {
         timeout,
       ]);
       if (process.env.NODE_ENV !== "production") {
+        // eslint-disable-next-line no-console
         console.log("[n8n] estimate-ready ping sent", {
           url: webhookUrl,
           first: !hadEstimate,
         });
       }
     } catch (err) {
+      // eslint-disable-next-line no-console
       console.error("[n8n] estimate-ready failed:", err);
     }
   }
 
-  // ✅ Redirect with a success flag (?sent=1) so page can show the banner
+  // Redirect with ?sent=1 to show banner
   const url = new URL(`/admin/submissions/${s.id}`, req.url);
   url.searchParams.set("sent", "1");
   return NextResponse.redirect(url, { status: 303 });

@@ -3,11 +3,15 @@ import NextAuth, { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
+import type { JWT } from "next-auth/jwt";
+import type { User, Session } from "next-auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
 export const revalidate = 0;
+
+type AppRole = "ADMIN" | "VISITOR";
 
 export const authOptions: NextAuthOptions = {
   session: { strategy: "jwt" },
@@ -16,12 +20,13 @@ export const authOptions: NextAuthOptions = {
     CredentialsProvider({
       name: "Admin",
       credentials: { email: {}, password: {} },
-      async authorize(credentials) {
+      async authorize(credentials): Promise<User | null> {
         if (!credentials?.email || !credentials?.password) return null;
 
         const user = await prisma.user.findUnique({
           where: { email: credentials.email.toLowerCase() },
         });
+
         // Only ADMINs can sign in to the portal
         if (!user || user.role !== "ADMIN" || !user.email) return null;
 
@@ -34,27 +39,36 @@ export const authOptions: NextAuthOptions = {
         const ok = await bcrypt.compare(credentials.password, pwd.token);
         if (!ok) return null;
 
-        return {
+        // Return a shape compatible with our augmented `User`
+        const safeUser: User = {
           id: user.id,
-          name: user.name,
+          name: user.name ?? null,
           email: user.email,
-          role: user.role, // "ADMIN" | "VISITOR"
-        } as any;
+          role: user.role as AppRole, // "ADMIN" | "VISITOR"
+        };
+
+        return safeUser;
       },
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user }: { token: JWT; user?: User }): Promise<JWT> {
       if (user) {
-        (token as any).id = (user as any).id;
-        (token as any).role = (user as any).role ?? "VISITOR";
+        token.id = user.id;
+        token.role = (user.role as AppRole) ?? "VISITOR";
       }
       return token;
     },
-    async session({ session, token }) {
+    async session({
+      session,
+      token,
+    }: {
+      session: Session;
+      token: JWT;
+    }): Promise<Session> {
       if (session.user) {
-        (session.user as any).id = (token as any).id;
-        (session.user as any).role = (token as any).role ?? "VISITOR";
+        session.user.id = token.id ?? "";
+        session.user.role = (token.role as AppRole) ?? "VISITOR";
       }
       return session;
     },
