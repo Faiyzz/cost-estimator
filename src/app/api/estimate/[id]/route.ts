@@ -103,15 +103,14 @@ export async function POST(req: NextRequest, ctx: { params: ParamsPromise }) {
         }),
         timeout,
       ]);
+
       if (process.env.NODE_ENV !== "production") {
-        // eslint-disable-next-line no-console
         console.log("[n8n] estimate-ready ping sent", {
           url: webhookUrl,
           first: !hadEstimate,
         });
       }
     } catch (err) {
-      // eslint-disable-next-line no-console
       console.error("[n8n] estimate-ready failed:", err);
     }
   }

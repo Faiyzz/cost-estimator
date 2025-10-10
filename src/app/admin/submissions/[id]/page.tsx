@@ -18,24 +18,30 @@ type SubmissionWithEstimate = VisitorSubmission & {
   estimate: Estimate | null;
 };
 
+function isFileish(
+  v: unknown
+): v is { url: unknown; name?: unknown; size?: unknown } {
+  return (
+    typeof v === "object" &&
+    v !== null &&
+    "url" in (v as Record<string, unknown>)
+  );
+}
+
 function coerceFilesJson(value: unknown): FileItem[] {
   if (!value) return [];
+
   if (Array.isArray(value)) {
-    // loose structural check
-    return value
-      .filter(
-        (v): v is FileItem =>
-          typeof v === "object" && v !== null && "url" in (v as any)
-      )
-      .map((v) => {
-        const item = v as Record<string, unknown>;
-        return {
-          url: String(item.url ?? ""),
-          name: typeof item.name === "string" ? item.name : undefined,
-          size: typeof item.size === "number" ? item.size : undefined,
-        };
-      });
+    return value.filter(isFileish).map((v) => {
+      const item = v as Record<string, unknown>;
+      return {
+        url: String(item.url ?? ""),
+        name: typeof item.name === "string" ? item.name : undefined,
+        size: typeof item.size === "number" ? item.size : undefined,
+      };
+    });
   }
+
   // If somehow stored as JSON string
   if (typeof value === "string") {
     try {
@@ -45,6 +51,7 @@ function coerceFilesJson(value: unknown): FileItem[] {
       return [];
     }
   }
+
   return [];
 }
 

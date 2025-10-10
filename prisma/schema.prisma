@@ -17,7 +17,7 @@ model User {
   image         String?
 
   // Role for admin portal
-  role          Role     @default(VISITOR)
+  role          Role     @default(ADMIN)
 
   accounts      Account[]
   sessions      Session[]

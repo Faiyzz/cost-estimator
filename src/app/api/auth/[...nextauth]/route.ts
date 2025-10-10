@@ -1,17 +1,14 @@
 // app/api/auth/[...nextauth]/route.ts
-import NextAuth, { NextAuthOptions } from "next-auth";
+import NextAuth, { NextAuthOptions, type User, type Session } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import type { JWT } from "next-auth/jwt";
-import type { User, Session } from "next-auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
 export const revalidate = 0;
-
-type AppRole = "ADMIN" | "VISITOR";
 
 export const authOptions: NextAuthOptions = {
   session: { strategy: "jwt" },
@@ -39,12 +36,12 @@ export const authOptions: NextAuthOptions = {
         const ok = await bcrypt.compare(credentials.password, pwd.token);
         if (!ok) return null;
 
-        // Return a shape compatible with our augmented `User`
+        // Now 'role' is a known property on User due to augmentation
         const safeUser: User = {
           id: user.id,
           name: user.name ?? null,
           email: user.email,
-          role: user.role as AppRole, // "ADMIN" | "VISITOR"
+          role: "ADMIN",
         };
 
         return safeUser;
@@ -55,7 +52,7 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user }: { token: JWT; user?: User }): Promise<JWT> {
       if (user) {
         token.id = user.id;
-        token.role = (user.role as AppRole) ?? "VISITOR";
+        token.role = user.role ?? "VISITOR";
       }
       return token;
     },
@@ -68,12 +65,11 @@ export const authOptions: NextAuthOptions = {
     }): Promise<Session> {
       if (session.user) {
         session.user.id = token.id ?? "";
-        session.user.role = (token.role as AppRole) ?? "VISITOR";
+        session.user.role = (token.role as "ADMIN" | "VISITOR") ?? "VISITOR";
       }
       return session;
     },
   },
-  // Use NEXTAUTH_SECRET (NextAuth v4)
   secret: process.env.NEXTAUTH_SECRET,
 };
 
