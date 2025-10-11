@@ -31,10 +31,11 @@ type UploadedFileMeta = {
 };
 
 type N8nPayload = VisitorBody & {
-  submissionId: number;
+  submissionId: string; // ← was number
   files: UploadedFileMeta[];
   n8nToken: string;
 };
+
 
 async function postToN8N(payload: N8nPayload): Promise<void> {
   const url = process.env.N8N_ESTIMATE_WEBHOOK_URL;
@@ -150,15 +151,23 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json({ ok: true });
-  } catch (e: unknown) {
-    console.error(e);
-    // Friendly message while staying typed
-    let message = "Bad Request";
-    if (e instanceof z.ZodError) {
-      message = e.errors.map((err) => err.message).join(", ");
-    } else if (e instanceof Error) {
-      message = e.message;
-    }
-    return NextResponse.json({ error: message }, { status: 400 });
+ } catch (e: unknown) {
+  console.error(e);
+  let message = "Bad Request";
+
+  if (e instanceof z.ZodError) {
+    // Option A: read from `issues`
+    message = e.issues.map((i) => i.message).join(", ");
+
+    // Option B (alternative): use `flatten()`
+    // const flat = e.flatten();
+    // message = [...flat.formErrors, ...Object.values(flat.fieldErrors).flat()]
+    //   .filter(Boolean)
+    //   .join(", ");
+  } else if (e instanceof Error) {
+    message = e.message;
   }
+
+  return NextResponse.json({ error: message }, { status: 400 });
+}
 }

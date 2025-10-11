@@ -1,21 +1,24 @@
-import "next-auth";
-import "next-auth/jwt";
+// src/types/next-auth.d.ts
+import { DefaultSession } from "next-auth";
 
 declare module "next-auth" {
+  interface User {
+    id: string;
+    // You said there's only one role that can log in.
+    role: "ADMIN";
+  }
+
   interface Session {
-    user?: {
-      id?: string;
-      name?: string | null;
-      email?: string | null;
-      image?: string | null;
-      role?: "ADMIN" | "VISITOR";
-    };
+    user: {
+      id: string;
+      role: "ADMIN";
+    } & DefaultSession["user"];
   }
 }
 
 declare module "next-auth/jwt" {
   interface JWT {
-    role?: "ADMIN" | "VISITOR";
     id?: string;
+    role?: "ADMIN";
   }
 }

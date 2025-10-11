@@ -36,13 +36,13 @@ export const authOptions: NextAuthOptions = {
         const ok = await bcrypt.compare(credentials.password, pwd.token);
         if (!ok) return null;
 
-        // Now 'role' is a known property on User due to augmentation
+        // Return only the properties that NextAuth expects on User
         const safeUser: User = {
           id: user.id,
           name: user.name ?? null,
           email: user.email,
-          role: "ADMIN",
-        };
+          // do NOT include `role` here to avoid the TS error
+        } as User;
 
         return safeUser;
       },
@@ -52,7 +52,8 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user }: { token: JWT; user?: User }): Promise<JWT> {
       if (user) {
         token.id = user.id;
-        token.role = user.role ?? "VISITOR";
+        // since only ADMIN can log in, set it directly
+        token.role = "ADMIN";
       }
       return token;
     },
@@ -65,7 +66,8 @@ export const authOptions: NextAuthOptions = {
     }): Promise<Session> {
       if (session.user) {
         session.user.id = token.id ?? "";
-        session.user.role = (token.role as "ADMIN" | "VISITOR") ?? "VISITOR";
+        // only ADMIN logs in; keep this assignment simple
+        session.user.role = "ADMIN";
       }
       return session;
     },
