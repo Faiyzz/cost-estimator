@@ -13,6 +13,7 @@ export const revalidate = 0;
 // app/api/auth/[...nextauth]/route.ts
 
 export const authOptions: NextAuthOptions = {
+ 
   session: { strategy: "jwt" },
   pages: { signIn: "/login" },
   providers: [
