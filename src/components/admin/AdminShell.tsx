@@ -49,7 +49,7 @@ export default function AdminShell({
     <div className="min-h-screen bg-[#0D0D0D] text-gray-200">
       {/* Header */}
       <header className="sticky top-0 z-40 border-b border-white/10 bg-[#111111]/90 backdrop-blur">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
+        <div className="flex h-16 w-full items-center justify-between px-4 md:px-6 lg:px-8">
           {/* Left: Brand */}
           <div className="flex items-center gap-3">
             <button
